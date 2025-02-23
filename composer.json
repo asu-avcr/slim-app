@@ -1,5 +1,5 @@
 {
-    "name": "mbursa/slim-app",
+    "name": "asu/slim-app",
     "description": "A web application boilerplate based on Slim PHP framework",
     "homepage": "https://github.com/mbursa/slim-app",
     "type": "library",
