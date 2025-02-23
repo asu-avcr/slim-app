@@ -15,6 +15,8 @@ abstract class AbstractLoginController extends AbstractController
 // Abstract controller for loggin in.
 // Supports login/password and an optional two-factor TOTP code verification.
 {
+    const REQUIRED_CONTAINERS = ['log', 'cache'];
+
     const LOGIN_ATTEMPTS_TRACKING = FALSE;                          // should track failed attemps (for abuse protection) 
     const LOGIN_ATTEMPTS_INTERVAL = 900;                            // failed attemps tracking interval (reset timeout)
     const LOGIN_ATTEMPTS_MAX = 4;                                   // no. of attempts allowed

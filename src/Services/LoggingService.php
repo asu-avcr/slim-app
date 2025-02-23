@@ -12,42 +12,45 @@ use Monolog\Formatter\JsonFormatter;
 
 
 
-class LoggingService
+class LoggingService extends AbstractService
 // Logging service based on Monolog library.
 // It can do whatever Monolog can.
 {
+    const CONFIG_SCHEMA = 'schemas/logging.json';
+
     protected Logger $logger;
 
-
-    public function __construct(?object $logging_conf) 
+    protected function initialize() 
     {
         // create logger
-        $this->logger = new Logger($logging_conf->name ?? 'SLIMAPP');
-
-        if (!$logging_conf) return;
+        $this->logger = new Logger($this->config->name ?? 'SLIMAPP');
 
         // read handlers from the config
         // - either an array or comma-separated string may be given
-        $handlers = (is_array($logging_conf->handlers ?? []))
-            ? $logging_conf->handlers ?? []
-            : array_map('trim', explode(',', $logging_conf->handlers));
+        $handlers = (is_array($this->config->handlers ?? []))
+            ? $this->config->handlers ?? []
+            : array_map('trim', explode(',', $this->config->handlers));
 
         // create each handler and set its params based on the config
         foreach($handlers as $handler) {
             $h = NULL;
             switch ($handler) {
-                case 'null': $h = new NullHandler(); break;
-
-                case 'file': $h = new StreamHandler(
-                        $logging_conf->file->path, 
-                        level:$logging_conf->mail->level ?? 'error'
+                case 'null': 
+                    $h = new NullHandler(); 
+                    break;
+                case 'file': 
+                    if (!$this->config->file) throw new \RuntimeException('Configuration is required for '.static::class.' (file handler)');
+                    $h = new StreamHandler(
+                        $this->config->file->path, 
+                        level:$this->config->mail->level ?? 'error'
                     ); 
                     break;
-                
-                case 'mail': $h = new NativeMailerHandler(
-                        to:$logging_conf->mail->to, subject:$logging_conf->mail->subject, 
-                        from:$logging_conf->mail->from, 
-                        level:$logging_conf->mail->level ?? 'error'
+                case 'mail': 
+                    if (!$this->config->mail) throw new \RuntimeException('Configuration is required for '.static::class.' (mail handler)');
+                    $h = new NativeMailerHandler(
+                        to:$this->config->mail->to, subject:$this->config->mail->subject, 
+                        from:$this->config->mail->from, 
+                        level:$this->config->mail->level ?? 'error'
                     );
                     break;
             }

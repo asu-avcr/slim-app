@@ -1,0 +1,21 @@
+{
+    "$id": "https://github.com/asu-avcr/slim-app/schemas/cache.json",
+    "type": "object",
+    "additionalProperties": true,
+    "required": ["namespace"],
+    "properties": {
+        "memcached_host": {
+            "type": "string",
+            "default": "localhost"
+        },
+        "memcached_post": {
+            "type": "integer",
+            "default": 11211
+        },
+        "namespace": {
+            "type": "string",
+            "minLength": 1
+        }
+    }
+}
+    

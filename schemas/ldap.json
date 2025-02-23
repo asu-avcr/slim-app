@@ -1,0 +1,26 @@
+{
+    "$id": "https://github.com/asu-avcr/slim-app/schemas/ldap.json",
+    "type": "object",
+    "additionalProperties": true,
+    "required": ["server_uri", "timeout", "base_dn", "filter_login", "field_mapping"],
+    "properties": {
+        "server_uri": {
+            "type": "string",
+            "format": "uri"
+        },
+        "timeout": {
+            "type": "integer"
+        },
+        "base_dn": {
+            "type": "string"
+        },
+        "filter_login": {
+            "type": "string"
+        },
+        "field_mapping": {
+            "type": "object",
+            "additionalProperties": true
+        }
+    }
+}
+

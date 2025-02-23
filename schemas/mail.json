@@ -1,0 +1,60 @@
+{
+    "$id": "https://github.com/asu-avcr/slim-app/schemas/database.json",
+    "type": "object",
+    "additionalProperties": true,
+    "required": ["server_uri", "timeout", "base_dn", "filter_login", "field_mapping"],
+    "properties": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["transport","sender_email"],
+        "properties": {
+            "transport": {
+                "type": "string",
+                "enum": ["sendmail", "smtp"]
+            },
+            "sender_email": {
+                "type": "string",
+                "format": "email"
+            },
+            "sender_name": {
+                "type": "string",
+                "format": "email",
+                "default": ""
+            },
+            "host": {
+                "type": "string"
+            },
+            "port": {
+                "type": "number"
+            },
+            "encryption": {
+                "type": "string",
+                "enum": ["", "tls","ssl"],
+                "default": ""
+            },
+            "smtp_auth": {
+                "type": "boolean"
+            },
+            "username": {
+                "type": "string"
+            },
+            "password": {
+                "type": "string"
+            }
+        },
+        "anyOf": [
+            {
+                "properties": {
+                    "transport": { "const": "sendmail" }
+                },
+                "required": []
+            },
+            {
+                "properties": {
+                    "transport": { "const": "smtp" }
+                },
+                "required": ["host","port","smtp_auth","username","password"]
+            }
+        ]
+    }
+}

@@ -13,24 +13,24 @@ use Opis\JsonSchema\{Validator,ValidationResult,Errors\ErrorFormatter};
 abstract class AbstractController
 // Abstract page controller object.
 {
+    const REQUIRED_CONTAINERS = ['log'];
+
     protected ContainerInterface $container;
-    protected object $config;
-    protected object $log;
-    protected object $db;
-    protected object $mail;
-    protected object $ldap;
-    protected object $cache;
+    protected ?object $config;
 
     // constructor receives container instance
     public function __construct(ContainerInterface $container)
     {
         $this->container = $container;
         $this->config = $container->get('config');
-        $this->log    = $container->get('log');
-        $this->db     = $container->get('db');
-        $this->mail   = $container->get('mail');
-        $this->ldap   = $container->get('ldap');
-        $this->cache  = $container->get('cache');
+
+        // load required containers
+        foreach (static::REQUIRED_CONTAINERS as $c) {
+            if ($container->has($c))
+                $this->{$c} = $container->get($c);
+            else
+                throw new \RuntimeException("Missing required container '{$c}' - did you provide configuration for it?");
+        }
     }
 
 
@@ -126,7 +126,7 @@ abstract class AbstractController
     protected function report_exception(\Throwable $e)
     // Report exception by email.
     { 
-        $this->mail->send_error_report($e, $this::class, $this->config->application->admin_email);
+        $this->log->error($e->getMessage(), ['class'=>static::class, 'exception'=>$e]);
     }
 
 

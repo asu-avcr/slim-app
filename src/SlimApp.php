@@ -12,6 +12,9 @@ use Firebase\JWT\JWT;
 
 use Middleware\BodyJsonParserMiddleware;
 
+// load utility function as this is not done by autoloader
+require_once __DIR__ . "/Utils/Utils.php";
+
 
 abstract class SlimApp
 // Abstract main application class.
@@ -68,24 +71,32 @@ abstract class SlimApp
         });
 
         // add mail service to the container
-        $container->set('mail', function () use ($container, $config) {
-            return new (static::SERVICE_MAIL_CLASS)($config->mail ?? NULL);
-        });
+        if (isset($config->mail)) {
+            $container->set('mail', function () use ($container, $config) {
+                return new (static::SERVICE_MAIL_CLASS)($config->mail);
+            });
+        }
 
         // add database service to the container
-        $container->set('db', function () use ($container, $config) {
-            return new (static::SERVICE_DB_CLASS)($config->database ?? NULL);
-        });
+        if (isset($config->database)) {
+            $container->set('db', function () use ($container, $config) {
+                return new (static::SERVICE_DB_CLASS)($config->database);
+            });
+        }
 
         // add ldap service to the container
-        $container->set('ldap', function () use ($container, $config) {
-            return new (static::SERVICE_LDAP_CLASS)($config->ldap ?? NULL);
-        });
+        if (isset($config->ldap)) {
+            $container->set('ldap', function () use ($container, $config) {
+                return new (static::SERVICE_LDAP_CLASS)($config->ldap);
+            });
+        }
 
         // add cache service to the container
-        $container->set('cache', function () use ($container, $config) {
-            return new (static::SERVICE_CACHE_CLASS)($config->cache ?? NULL);
-        });
+        if (isset($config->cache)) {
+            $container->set('cache', function () use ($container, $config) {
+                return new (static::SERVICE_CACHE_CLASS)($config->cache);
+            });
+        }
 
         // add additional application services to the container
         $services = $this->services();

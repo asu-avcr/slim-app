@@ -6,26 +6,23 @@ namespace SlimApp\Services;
 const MEMCACHED_SUCCESS     = \Memcached::RES_SUCCESS;
 const MEMCACHED_NOTFOUND    = \Memcached::RES_NOTFOUND;
 
-class CacheService
+class CacheService extends AbstractService
 {
+    const CONFIG_SCHEMA = 'schemas/cache.json';
+
     private static $memcached = NULL;
     private string $namespace = '';
 
-    public function __construct(?object $cache_conf) 
+    public function initialize() 
     {
-        if (!$cache_conf) return;
+        if (empty($this->config->namespace)) throw new \RuntimeException("Empty namespace in ".static::class);
 
-        $memcached_host = $cache_conf->memcached_host;
-        $memcached_port = $cache_conf->memcached_port;
-        $namespace = $cache_conf->namespace;
+        $this->namespace = str_ends_with($this->config->namespace,'/') ? $this->config->namespace : $this->config->namespace.'/';
 
         if (!self::$memcached) {
             self::$memcached = new \Memcached();
-            self::$memcached->addServer($memcached_host, $memcached_port);
-        }
-
-        if (!empty($namespace)) {
-            $this->namespace = str_ends_with($namespace,'/') ? $namespace : $namespace.'/';
+            $res = self::$memcached->addServer($this->config->memcached_host ?? 'localhost', $this->config->memcached_port ?? 11211);
+            if (!$res) throw new \RuntimeException("Cannot use memcached service for server {$this->config->memcached_host}");
         }
     }
 

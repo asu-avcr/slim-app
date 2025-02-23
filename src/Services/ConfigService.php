@@ -4,7 +4,6 @@ namespace SlimApp\Services;
 
 use Opis\JsonSchema\{Validator,ValidationResult,Schema,Errors\ErrorFormatter};
 
-require __DIR__.'/../Utils/Utils.php';
 use function SlimApp\Utils\json_array_to_object;
 
 
@@ -21,17 +20,21 @@ class ConfigService
 // the proper syntax of the SlimApp's services options (database connection, mailer), 
 // if they are given
 {
-    public function __construct(?string $config_file, ?string $config_schema) 
-    {
-        // return empty object if no config file is given
-        if (!$config_file) return;
+    const CONFIG_SCHEMA = 'schemas/config.json';
 
-        if (!is_file($config_file)) {
-            throw new \Exception("Invalid config file - $config_file");
+    public function __construct(string $config_file, ?string $application_config_schema) 
+    {
+        $slimapp_schema_path = realpath(__DIR__ . '/../../' . static::CONFIG_SCHEMA);
+        if (!$slimapp_schema_path || !is_file($slimapp_schema_path)) {
+            throw new \RuntimeException('Configuration schema for '.static::class.' is missing.');
         }
 
-        if (!is_null($config_schema) && !is_file($config_schema)) {
-            throw new \Exception("Invalid config schema - $config_schema");
+        if (!is_file($config_file)) {
+            throw new \RuntimeException("Invalid config file - $config_file");
+        }
+
+        if (!is_null($application_config_schema) && !is_file($application_config_schema)) {
+            throw new \RuntimeException("Invalid application config schema - $application_config_schema");
         }
         // load configuration data in object representation
         $config_data = (object)json_array_to_object(
@@ -42,33 +45,27 @@ class ConfigService
 
         // validate configuration data against SlimApp schema
         $validation_result = $validator->validate(
-            $config_data,
-            file_get_contents(__DIR__ . '/../../schemas/config.json')
+            $config_data, file_get_contents($slimapp_schema_path)
         );
         if (!$validation_result->isValid()) {
-            throw new \Exception(print_r((new ErrorFormatter())->formatOutput($validation_result->error(),'verbose'),TRUE));
+            throw new \RuntimeException('Invalid config for '.static::class.': '.implode(';',(new ErrorFormatter())->formatFlat($validation_result->error())));
         }
 
         // validate configuration data against application's schema
-        if ($config_schema) {
+        if ($application_config_schema) {
             $validation_result = $validator->validate(
-                $config_data,
-                file_get_contents($config_schema)
+                $config_data, file_get_contents($application_config_schema)
             );
             if (!$validation_result->isValid()) {
-                throw new \Exception(print_r((new ErrorFormatter())->formatOutput($validation_result->error(),'verbose'),TRUE));
+                throw new \RuntimeException('Invalid config for '.static::class.': '.implode(';',(new ErrorFormatter())->formatFlat($validation_result->error())));
             }
         }
 
         // apply $config_data content to the object
         foreach (get_object_vars($config_data) as $key => $value) $this->{$key} = $value;
 
-        if (isset($this->debug)) {
-            $this->admin_email = $this->debug->admin_email;
-            $this->debug = $this->debug->debug ?? FALSE;
-        } else {
-            $this->debug = FALSE;
-        }
+        // make shortcut for debug
+        $this->debug = $this->application->debug ?? FALSE;
     }
 
 

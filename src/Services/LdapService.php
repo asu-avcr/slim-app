@@ -14,11 +14,13 @@ class LDAPErrorException extends \Exception {
 }
 
 
-class LdapService
+class LdapService extends AbstractService
 // DatabaseService connects to a backing database (supports MySql trough mysqli driver) and
 // provides methis to store/retrieve information about orders, payments etc.
 // Access to the database is abstracted with Doctrine\DBAL framework.
 {
+    const CONFIG_SCHEMA = 'schemas/ldap.json';
+
     const ERR_LDAP_INVALID_URI      = 'ldap_invalid_uri';
     const ERR_LDAP_UNAVALABLE       = 'ldap_unavailable';
     const ERR_LDAP_INVALID_SEARCH   = 'ldap_invalid_search';
@@ -26,15 +28,12 @@ class LdapService
     const ERR_LDAP_INVALID_CREDENTIALS = 'ldap_invalid_credentials';
     const ERR_LDAP_INVALID_FIELD    = 'ldap_invalid_field';
 
-    private ?object $ldap_conf;
     // private int $last_ldap_errno = 0;
     // private string $last_ldap_error = '';
 
-    public function __construct(?object $ldap_conf) 
+    public function initialize() 
     {
-        if (!$ldap_conf) return;
-
-        $this->ldap_conf = $ldap_conf;
+        // noop
     }
 
 
@@ -71,10 +70,10 @@ class LdapService
     private function ldap_connect(): \LDAP\Connection|null
     {
         $ldap_conn = NULL;
-        $timeout = $this->ldap_conf->timeout ?? 5;
+        $timeout = $this->config->timeout ?? 5;
 
         // parse URI to components
-        $uri = parse_url($this->ldap_conf->server_uri);
+        $uri = parse_url($this->config->server_uri);
         $ldap_scheme = $uri['scheme'] ?? 'ldaps';
         $ldap_host   = $uri['host'];
         $ldap_port   = $uri['port'] ?? 636;
@@ -139,27 +138,9 @@ class LdapService
         assert($ldap_conn, 'ldap: no connection');
 
         $login = trim(strtolower($login));
-        $filter = str_replace('%s', ldap_escape($login,flags:LDAP_ESCAPE_FILTER), $this->ldap_conf->filter_login);
+        $filter = str_replace('%s', ldap_escape($login,flags:LDAP_ESCAPE_FILTER), $this->config->filter_login);
 
-        $entries = $this->ldap_search($ldap_conn, $this->ldap_conf->base_dn, $filter);
-
-        // more then one result is a problem
-        if (count($entries) > 1) {
-            throw new LDAPErrorException(self::ERR_LDAP_AMBIGUOUS_SEARCH, ['login'=>$login,'filter'=>$filter], soft:FALSE, code:ldap_errno($ldap_conn));
-        }
-
-        // return single entry
-        return (!empty($entries)) ? $entries[0] : FALSE;
-    }
-
-
-    private function ldap_search_pid(\LDAP\Connection $ldap_conn, int $pid): array|false
-    {
-        assert($ldap_conn, 'ldap: no connection');
-
-        $filter = str_replace('%s', $pid, $this->ldap_conf->filter_pid);
-
-        $entries = $this->ldap_search($ldap_conn, $this->ldap_conf->base_dn, $filter);
+        $entries = $this->ldap_search($ldap_conn, $this->config->base_dn, $filter);
 
         // more then one result is a problem
         if (count($entries) > 1) {
@@ -215,7 +196,7 @@ class LdapService
         }
 
         // make field name mapping 
-        foreach ($this->ldap_conf->field_mapping??[] as $name=>$ldap_field) {
+        foreach ($this->config->field_mapping??[] as $name=>$ldap_field) {
             $result[$name] = $ldap_entry[$ldap_field][0] ?? NULL;
         }
 
@@ -245,10 +226,6 @@ class LdapService
     // @param tfa          TOTP code (unused if 0)
     // @result User personal number or FALSE.
     {
-        if (!$this->ldap_conf) {
-            throw \Exception("SlimApp\Services\LdapService has been used without configuration");
-        }
-
         if (empty($login) || empty($password)) return FALSE;
 
         $ldap_conn = NULL;
@@ -276,10 +253,6 @@ class LdapService
 
     public function user_info(string $user_dn) : array|false
     {
-        if (!$this->ldap_conf) {
-            throw \Exception("SlimApp\Services\LdapService has been used without configuration");
-        }
-
         if (empty($user_dn)) return FALSE;
 
         $ldap_conn = NULL;
@@ -304,10 +277,6 @@ class LdapService
 
     public function modify_attribute(string $user_dn, #[\SensitiveParameter] string $password, array $entry): array
     {
-        if (!$this->ldap_conf) {
-            throw \Exception("SlimApp\Services\LdapService has been used without configuration");
-        }
-
         $ldap_conn = NULL;
         try {
             $ldap_conn = $this->ldap_connect();

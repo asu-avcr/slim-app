@@ -92,8 +92,7 @@ abstract class AbstractSessionMiddleware implements MiddlewareInterface
         }
         catch (\Throwable $e) {
             // on any other exception, send a report to admin and return http-500 error response
-            $config = $this->container->get('config');
-            $this->container->get('mail')->send_error_report($e, $this::class, $config->application->admin_email??NULL);
+            $this->container->log?->error($e->getMessage(), ['class'=>static::class, 'exception'=>$e]);
             return $this->responseFactory->createResponse()->withStatus(500);
         }
     }
