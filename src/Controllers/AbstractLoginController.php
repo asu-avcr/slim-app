@@ -88,7 +88,7 @@ abstract class AbstractLoginController extends AbstractController
                     ]);
                 }
 
-                // verify login/password in LDAP service
+                // verify login/password 
                 $user = $this->user_authenticate($post->login, $post->password);
 
                 // on invalid login, render the login page with an error
@@ -145,7 +145,7 @@ abstract class AbstractLoginController extends AbstractController
                 $post->login = $post1['login'];
                 $post->password = $post1['password'];
 
-                // verify login/password in LDAP service
+                // verify login/password 
                 // the authentication should always work since the credentials are passed from the previou step,
                 // if not, something is fishy
                 $user = $this->user_authenticate($post->login, $post->password);
