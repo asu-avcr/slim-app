@@ -1,4 +1,5 @@
 
+
 # SlimApp
 
 A web application boilerplate based on [Slim 4 PHP framework](https://www.slimframework.com/).
@@ -19,6 +20,7 @@ This boilerplate helps with quickly setting up a ready-to-use application and in
 
 **Content:**
 - [Installation and setup](#installation-and-basic-web-application-setup)
+- [Application components](#application-components)
 
 
 ## Installation and basic web application setup
@@ -138,6 +140,194 @@ Customization is possible in many ways. To start with, you can edit the html pag
 2. [Twig template engine](https://twig.symfony.com/)
 
 
+
+## Application components
+
+### Config
+
+SlimApp `ConfigService` provides configuration to your application. All application configuration setting are stored in `conf/config.yaml` (the location may be changed by your app). The configuration file has one mandatory section and may contain other sections based on the required components:
+```yaml
+application:
+    debug: false
+```
+Put any application's own configuration options either to the `application` section of the config file or to a new separate sections. It is a good strategy to provide a JSON schema fot the application configuration. It will help to validate the config file and check if all required options have been given. Specify the config file location and schema when setting up the main application object:
+```php
+use SlimApp\SlimApp;
+class MyApp extends SlimApp
+{
+    const CONFIG_FILE = __DIR__  .  '/../conf/config.yaml';
+    const CONFIG_SCHEMA = __DIR__  .  '/../schemas/config.json';
+}
+```
+The config service is available in every controler that derives from `AbstractController` and it can be user to access any configuration property as its object propetries:
+```php
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+use SlimApp\Controllers\AbstractController;
+
+class MyController extends AbstractController
+{
+    public function webpage(Request $request, Response $response, array $args): Response 
+    {
+        $option1 = $this->config->application->option1 ?? FALSE;
+        $option2 = $this->config->custom_section->option2 ?? FALSE;
+    }
+}
+```
+
+
+### Cache
+
+SlimApp uses [memcached](https://memcached.org/), a distributed memory object caching system, as the caching backend. Mamcached provides an in-memory key-value storage for small chunks of arbitrary data (strings, objects). 
+
+The cache service only activates if a configuration is provided (`cache` section exists in the config file) and if it is required by a controller. You can access the cache service in any controller if that derives from `AbstractController` and if it has declared logging as a required container dependency (`const REQUIRED_CONTAINERS = ['cache', ...];`). 
+
+```php
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+use SlimApp\Controllers\AbstractController;
+
+class MyController extends AbstractController
+{
+    const REQUIRED_CONTAINERS = ['cache'];
+    public function webpage(Request $request, Response $response, array $args): Response 
+    {
+        $this->cache->set('key', $value);
+    }
+}
+```
+
+At the same time, you need to provide a configuration for caching service in the application's config file.
+
+```yaml
+cache:
+    memcached_host: localhost                 # memcached server
+    memcached_port: 11211                     # memcached server port
+    namespace: my-app                         # namespace for your application
+```
+The complete schema for cache configuration can be found in `schemas/cache.json`.
+
+Note that memcached is a global and independent service that may serve more applications. It is important that you use a unique `namespace` to isolate the cached data of your application from data of other applications.
+
+### Database
+
+SlimApp uses [Doctrine Database Abstraction Layer](https://www.doctrine-project.org/projects/dbal.html), a powerful object-oriented database abstraction layer, as the database backend. DBAL can connect to various type of database engines and provides universal interface for SQL operations. 
+
+The database service only activates if a configuration is provided (`database` section exists in the config file) and if it is required by a controller. You can access the cache service in any controller if that derives from `AbstractController` and if it has declared database as a required container dependency (`const REQUIRED_CONTAINERS = ['database', ...];`). 
+
+```php
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+use SlimApp\Controllers\AbstractController;
+
+class MyController extends AbstractController
+{
+    const REQUIRED_CONTAINERS = ['database'];
+    public function webpage(Request $request, Response $response, array $args): Response 
+    {
+        $this->db->fetchAssociative('SELECT * FROM table WHERE id=?', [$id]);
+    }
+}
+```
+
+At the same time, you need to provide a configuration for database service in the application's config file.
+
+```yaml
+database:
+    drive: mysql                              # database driver
+    host: localhost                           # database server
+    dbname: database                          # database name
+    user: !string                             # user name
+    password: !string                         # user password
+    ssl: true                                 # use secure connection
+```
+The complete schema for cache configuration can be found in `schemas/database.json`.
+
+
+### LDAP
+
+SlimApp provides access to LDAP directory using native PHP [LDAP functions](https://www.php.net/manual/en/book.ldap.php). LDAP (the Lightweight Directory Access Protocol), and is a protocol used to access "Directory Servers" that tipically store information about users and their accress rights.
+
+The LDAP service only activates if a configuration is provided (`ldap` section exists in the config file) and if it is required by a controller. You can access the cache service in any controller if that derives from `AbstractController` and if it has declared database as a required container dependency (`const REQUIRED_CONTAINERS = ['ldap', ...];`). 
+
+```php
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+use SlimApp\Controllers\AbstractController;
+
+class MyController extends AbstractController
+{
+    const REQUIRED_CONTAINERS = ['ldap'];
+    public function webpage(Request $request, Response $response, array $args): Response 
+    {
+        $user = $this->ldap->authenticate($login, $password);
+    }
+}
+```
+
+At the same time, you need to provide a configuration for LDAP service in the application's config file.
+
+```yaml
+ldap:
+    server_uri: ldaps://ldap.company.com:636  # LDAP server URI
+    timeout: 5                                # connection timeout [seconds]
+    base_dn: ou=People,dc=company,dc=com      # base DN
+    filter_login: (uid=%s)                    # login filter (how to apply login name)
+    field_mapping:                            # field mapping (optional)
+        login: uid                            # app field: ldap field
+        email: mail                           # app field: ldap field
+        last_name: sn                         # app field: ldap field
+        first_name: givenname                 # app field: ldap field
+```
+The complete schema for cache configuration can be found in `schemas/ldap.json`.
+
+
+### Logging
+
+SlimApp uses [[seldaek/monolog](https://github.com/Seldaek/monolog)] as the logging tool. Monolog provides a plug-and-use [PSR-3](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-3-logger-interface.md) compatible logging solution that allows to send your logs to files, sockets, inboxes, databases and various web services. 
+
+SlimApp has support for two log handlers:
+- the local file log handler, which streams logs to local file system, based on the configured log level
+- the mail log handler, which email log reports to given recipients
+
+The logger only activates if a configuration is provided (`logging` section exists in the config file) and if it is required by a controller. You can access the logger in any controller if that derives from `AbstractController` and if it has declared logging as a required container dependency (`const REQUIRED_CONTAINERS = ['log', ...];`). 
+
+```php
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+use SlimApp\Controllers\AbstractController;
+
+class MyController extends AbstractController
+{
+    const REQUIRED_CONTAINERS = ['log'];
+    public function webpage(Request $request, Response $response, array $args): Response 
+    {
+        $this->log->error('message');
+    }
+}
+```
+
+At the same time, you need to provide a configuration for logging service in the application's config file.
+
+```yaml
+logging:
+    name: MY-APP                              # name of your application
+    handlers: [mail,file]                     # which logging handlers to activate
+    mail:                                     # config section for mail handler
+        level: warning                        # minimum log level
+        subject: !text                     # report subject (see description)
+        to: !email                            # recipient email
+        from: !email                          # sender email
+    file:                                     # config section for file handler
+        level: info                           # minimum log level
+        path: /tmp/slimapp.log                # log file path
+```
+The complete schema for logging configuration can be found in `schemas/logging.json`.
+
+For `mail` handler, `subject` may contain placeholders for `monolog` fields (see [LineFormatter](https://github.com/Seldaek/monolog/blob/main/src/Monolog/Formatter/LineFormatter.php)), for example 
+```yaml
+subject: "Log Report %channel%:%level_name% - %message%"
+```
 
 ## Licence
 
