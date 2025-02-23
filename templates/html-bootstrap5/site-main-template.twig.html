@@ -1,0 +1,61 @@
+{% extends 'html-bootstrap5/html-bootstrap5.twig.html' %}
+
+{# --- HTML HEAD  --- #}
+
+{% block html_meta %}
+    <meta name="author" content="{{html_author}}">
+{% endblock %}
+
+
+{# --- HTML BODY  --- #}
+
+{% block html_body_header %}
+<header id="html_body_header" class="header my-3 px-md-4 mb-0 {{html_body_header_class}}">
+    {% block html_body_header_h1 %}
+    <h1 class="my-0 mr-md-auto font-weight-normal">
+        {% block html_body_header_h1_logo %}
+        <img src="{{html_body_header_logo_url}}" alt="LOGO" height="70"/>
+        {% endblock %}
+        {% block html_body_header_h1_title %}
+        <span class="ms-5">{{html_body_header_h1_title|default('SITE TITLE')}}</span>
+        {% endblock %}
+    </h1>
+    {% endblock %}
+    {% block html_body_header_slot %}{% endblock %}
+</header>
+{% endblock %}
+
+
+{% block html_body_main %}
+<main id="html_body_main" class="main {{html_body_main_class}}">
+    {% block html_body_main_content %}
+    {% endblock %}
+</main>
+{% endblock %}
+
+
+{% block html_body_footer %}
+<footer id="html_body_footer" class="footer pt-4 my-md-5 pt-md-4 border-top {{html_body_footer_class}}">
+    <div class="row">
+        {% block html_body_footer_left %}
+        <div class="footer-left col-md text-start">
+            {% block html_body_footer_left_slot %}{% endblock %}
+        </div>
+        {% endblock %}
+
+        {% block html_body_footer_center %}
+        <div class="footer-center col-md text-start">
+            {% block html_body_footer_center_slot %}{% endblock %}
+        </div>
+        {% endblock %}
+
+        {% block html_body_footer_right %}
+        <div class="footer-right col-md text-start">
+            {% block html_body_footer_right_slot %}{% endblock %}
+        </div>
+        {% endblock %}
+    </div>
+</footer>
+{% endblock %}
+
+

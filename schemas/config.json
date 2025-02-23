@@ -1,0 +1,151 @@
+{
+    "$id": "https://projects.asu.cas.cz/asu/slimapp/schemas/config.json",
+    "type": "object",
+    "additionalProperties": true,
+    "required": ["application"],
+    "properties": {
+        "application": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["admin_email"],
+            "properties": {
+                "admin_email": {
+                    "type": "string",
+                    "format": "email"
+                },
+                "debug": {
+                    "type": "boolean",
+                    "default": "false"
+                },
+                "jwt_auth_key": {
+                    "type": "string",
+                    "minLength": 32
+                },
+                "jwt_auth_ttl": {
+                    "type": "number",
+                    "default": 600
+                }
+            }
+        },
+        "mail": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["transport","sender_email"],
+            "properties": {
+                "transport": {
+                    "type": "string",
+                    "enum": ["sendmail", "smtp"]
+                },
+                "sender_email": {
+                    "type": "string",
+                    "format": "email"
+                },
+                "sender_name": {
+                    "type": "string",
+                    "format": "email",
+                    "default": ""
+                },
+                "host": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "number"
+                },
+                "encryption": {
+                    "type": "string",
+                    "enum": ["", "tls","ssl"],
+                    "default": ""
+                },
+                "smtp_auth": {
+                    "type": "boolean"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            },
+            "anyOf": [
+                {
+                    "properties": {
+                        "transport": { "const": "sendmail" }
+                    },
+                    "required": []
+                },
+                {
+                    "properties": {
+                        "transport": { "const": "smtp" }
+                    },
+                    "required": ["host","port","smtp_auth","username","password"]
+                }
+            ]
+        },
+        "database": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["driver","host","dbname","user","password"],
+            "properties": {
+                "driver": {
+                    "type": "string",
+                    "enum": ["mysqli"]
+                },
+                "host": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "dbname": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "user": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "ssl": {
+                    "type": "boolean",
+                    "default": false
+                }
+            }
+        },
+        "ldap": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["server_uri", "timeout", "base_dn"],
+            "properties": {
+                "server_uri": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "timeout": {
+                    "type": "integer"
+                },
+                "base_dn": {
+                    "type": "string"
+                }
+            }
+        },
+        "cache": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["memcached_host", "memcached_port", "namespace"],
+            "properties": {
+                "memcached_host": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "memcached_port": {
+                    "type": "integer",
+                    "default": 11211
+                },
+                "namespace": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
