@@ -1,0 +1,4 @@
+application:
+    admin_email: admin@my-company.com
+    debug: true
+

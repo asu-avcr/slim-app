@@ -1,0 +1,21 @@
+{% extends 'site-template.twig.html' %}
+
+{% block html_body_main_content %}
+    <h1>Example</h1>
+
+    <ul>
+        <li>{{param1}}</li>
+        <li>{{param2}}</li>
+        <li>{{param3}}</li>
+    </ul>
+
+    <h3>Server Vars dump</h3>
+    <pre>
+        {{server_vars|dump}}
+    </pre>
+
+    <p>
+        <a class="btn btn-secondary" onclick="history.go(-1);">Go Back</a>
+    </p>
+{% endblock %}
+
