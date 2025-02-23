@@ -1,7 +1,7 @@
 {
-    "name": "asu/slimapp",
+    "name": "mbursa/slim-app",
     "description": "A web application boilerplate based on Slim PHP framework",
-    "homepage": "https://projects.asu.cas.cz/asu/slim-app",
+    "homepage": "https://github.com/mbursa/slim-app",
     "type": "library",
     "keywords": [
         "php",
@@ -15,15 +15,15 @@
         "slim/twig-view": "^3.4",
         "opis/json-schema": "^2.3",
         "php-di/slim-bridge": "^3.4",
-        "firebase/php-jwt": "^6.10",
-        "doctrine/dbal": "^4.0",
-        "phpmailer/phpmailer": "^6.9",
-        "monolog/monolog": "^3.0",
-        "spomky-labs/otphp": "^11.3"
+        "firebase/php-jwt": "^6",
+        "doctrine/dbal": "^4",
+        "phpmailer/phpmailer": "^6",
+        "monolog/monolog": "^3",
+        "spomky-labs/otphp": "^11"
     },
     "autoload": {
         "psr-4": {
-            "ASU\\SlimApp\\": "src/"
+            "SlimApp\\": "src/"
         }
     },
     "minimum-stability":"dev"
