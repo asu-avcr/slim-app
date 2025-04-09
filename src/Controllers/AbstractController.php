@@ -7,13 +7,15 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Slim\Views\Twig;
 use Opis\JsonSchema\{Validator,ValidationResult,Errors\ErrorFormatter};
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 
 
 abstract class AbstractController
 // Abstract page controller object.
 {
-    const REQUIRED_CONTAINERS = ['log'];
+    protected const REQUIRED_CONTAINERS = ['log'];
 
     protected ContainerInterface $container;
     protected ?object $config;
@@ -81,7 +83,6 @@ abstract class AbstractController
     // Detect preffered browser language and redirect to the locale URI.
     // https://gist.github.com/Xeoncross/dc2ebf017676ae946082
     {
-        echo 'eeeee';
         // detect language, change cs->cz
         $lang = 'en';//$this->browser_prefered_language(['cs','en'], $_SERVER["HTTP_ACCEPT_LANGUAGE"], 'en');
         if ($lang == 'cs') $lang = 'cz';
@@ -99,12 +100,13 @@ abstract class AbstractController
     // $schema_file: a file containing json schema for the request (relative to schemas folder)
     // $errors: on output, any errors from the validator are stored in the given variable as an array
     {
+        $schema_file = realpath($schema_file);
+        if (!$schema_file || !is_file($schema_file)) throw new \RuntimeException("Schema file $schema_file not found.");
         assert((bool)($data instanceof \stdClass), 'data shall be provided as PHP objects');
 
         $validator = new Validator();
         $validation_result = $validator->validate(
-            $data, 
-            file_get_contents($schema_file)
+            $data, file_get_contents($schema_file)
         );
 
         if (!$validation_result->isValid()) {
@@ -123,17 +125,10 @@ abstract class AbstractController
     }
 
 
-    protected function report_exception(\Throwable $e)
-    // Report exception by email.
-    { 
-        $this->log->error($e->getMessage(), ['class'=>static::class, 'exception'=>$e]);
-    }
-
-
-    protected function jwt_encode_data(array $data, string $secret): string
+    protected function jwt_encode_data(array $data, string $secret, string $algorithm='HS256'): string
     // Create JWT token containing given data.
     {
-        return JWT::encode($data, $secret, 'HS256');
+        return JWT::encode($data, $secret, $algorithm);
     }
 
 
@@ -147,12 +142,11 @@ abstract class AbstractController
     }
 
     
-    protected function response_400_invalid(ResponseInterface $response, ?Twig $view, \Exception $e, bool $report_error = FALSE): ResponseInterface
+    protected function response_400_invalid(ResponseInterface $response, ?Twig $view, \Exception $e): ResponseInterface
     // Respond with 400-invalid.
     // If $report_error is set, report the error by email.
     // If $view is set, render error webpage.
     {
-        if ($report_error) $this->report_exception($e);
         if ($view) $view->render($response, 'http-errors/http-400-invalid.twig.html', []);
         return $response->withStatus(400);
     }
@@ -163,7 +157,7 @@ abstract class AbstractController
     // $error is a short string description of the error.
     // $details is an array with optional content.
     {
-        $data = ['error' => $error];
+        $data = ['result' => FALSE, 'error' => $error];
         if ($details) $data['details'] = $details;
 
         $response->getBody()->write(
@@ -207,7 +201,6 @@ abstract class AbstractController
     // Respond with 500-server-error and report the error by email.
     // If $view is set, render error webpage.
     {
-        $this->report_exception($e);
         if ($view) {
             $view->render($response, 'http-errors/http-500-server-error.twig.html', [
                 'debug' => $this->config->application->debug ?? FALSE,
