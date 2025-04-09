@@ -15,7 +15,7 @@ abstract class AbstractLoginController extends AbstractController
 // Abstract controller for loggin in.
 // Supports login/password and an optional two-factor TOTP code verification.
 {
-    const REQUIRED_CONTAINERS = ['log', 'cache'];
+    protected const REQUIRED_CONTAINERS = ['log', 'cache'];
 
     const LOGIN_ATTEMPTS_TRACKING = FALSE;                          // should track failed attemps (for abuse protection) 
     const LOGIN_ATTEMPTS_INTERVAL = 900;                            // failed attemps tracking interval (reset timeout)
@@ -73,7 +73,7 @@ abstract class AbstractLoginController extends AbstractController
         try {
             $post = (object) $request->getParsedBody();
 
-            // stage 1: login and password
+            // stage 1: verify login and password
             if (isset($post->login) && isset($post->password)) {
                 // validate the form input
                 if (!$this->validate_input($post)) {
@@ -88,7 +88,7 @@ abstract class AbstractLoginController extends AbstractController
                     ]);
                 }
 
-                // verify login/password 
+                // verify login/password, get user data from LDAP
                 $user = $this->user_authenticate($post->login, $post->password);
 
                 // on invalid login, render the login page with an error
@@ -105,14 +105,12 @@ abstract class AbstractLoginController extends AbstractController
                     ]);
                 }
 
-                $this->log->info("Login authorization for {$post->login}", ['login'=>$post->login, 'ip'=>$_SERVER['REMOTE_ADDR']]);
+                $this->log->info("Login authorization for {$post->login}", ['login'=>$post->login]);
 
-                // // generate a new random TOTP secret for stage-2
-                // $post->totp_secret = TOTP::generate()->getSecret();
-
-                // verify 2FA TOTP secret is set
-                if (static::LOGIN_USE_2FA && (strlen($user['totp_secret']) < $this->config->tfa->length)) {
-                    $this->log->warning("Invalid 2FA secret for user {$post->login}", ['user_dn'=>$user['dn']]);
+                // verify TOTP secret has been set in use data, has minimal length and the length is a power of 2 [pow of 2: (($n & ($n-1)) == 0)]
+                $n = strlen($user['totp_secret']); 
+                if (static::LOGIN_USE_2FA && ( ($n<16) || (($n & ($n-1)) > 0) )) {
+                    $this->log->warning("Invalid 2FA secret for user {$post->login}", ['user'=>$user]);
                     // show error
                     return $twig->render($response, static::LOGIN_TEMPLATE_PASSWORD, [
                         'lang' => $post->lang,
@@ -121,14 +119,16 @@ abstract class AbstractLoginController extends AbstractController
                     ]);
                 }
 
-                // login is ok, render phase-2 page with 2FA code
+                // login is ok, reset the invalid login counter
                 $this->login_attempts_reset($_SERVER['REMOTE_ADDR']);
+
+                // if 2FA is enabled, render phase-2 page, else redirect to the target page
                 if (static::LOGIN_USE_2FA) {
                     return $twig->render($response, static::LOGIN_TEMPLATE_2FA_TOTP, [
                         'lang' => $post->lang,
+                        'user' => $user,
                         // copy back the login/password contained in $post data to have it back with the TFA code (encrypted) 
                         'login_token' => json_encrypt((array)$post, $this->config->application->login_token_secret_key),
-                        'login_attempts_warning' => $this->login_attempts_warning($_SERVER['REMOTE_ADDR']),
                     ]);
                 } else {
                     // redirect to the loggen-in home page
@@ -141,48 +141,30 @@ abstract class AbstractLoginController extends AbstractController
             // stage 2: 2FA TOTP code
             if (static::LOGIN_USE_2FA && isset($post->tfa_totp_code) && isset($post->login_token)) {
                 // recover previously given login+password from login_token
-                $post1 = json_decrypt($post->login_token, $this->config->application->login_token_secret_key);
-                $post->login = $post1['login'];
-                $post->password = $post1['password'];
+                $user_credentials = json_decrypt($post->login_token, $this->config->application->login_token_secret_key);
 
                 // verify login/password 
                 // the authentication should always work since the credentials are passed from the previou step,
                 // if not, something is fishy
-                $user = $this->user_authenticate($post->login, $post->password);
+                $user = $this->user_authenticate($user_credentials['login'], $user_credentials['password']);
                 if (!$user) {
-                    $post->password = '****';
-                    $this->log->notice("Invalid login authentication in 2FA phase", ['post'=>$post, 'ip'=>$_SERVER['REMOTE_ADDR']]);
+                    $this->log->notice("Invalid login authentication in 2FA phase", ['login'=>$user_credentials['login'], 'post'=>$post]);
                     return $this->response_400_invalid($response, $twig, new \Exception('invalid input'));
                 }
 
-                // verify TOTP secrete has been set
-                if (strlen($user['totp_secret']) < $this->config->tfa->length) {
-                    return $twig->render($response, static::LOGIN_TEMPLATE_PASSWORD, [
-                        'lang' => $post->lang,
-                        'error' => 'invalid_tfa_secret',
-                        'login_attempts_warning' => $this->login_attempts_warning($_SERVER['REMOTE_ADDR']),
-                    ]);
-                }
+                // verify TOTP code
+                $totp = $this->totp_verify($user['totp_secret'], $post);
 
-                // verify 2FA-TOTP code is valid
-                $totp = \OTPHP\TOTP::create(
-                    substr($user['totp_secret'], 0, $this->config->tfa->length),
-                    period: $this->config->tfa->period,
-                    digest: $this->config->tfa->digest,
-                    digits: $this->config->tfa->digits,
-                );
-                if (!$totp->verify($post->tfa_totp_code)) $user = NULL;
-
-                // on invalid login, render the login page with an error
-                if (!$user) {
+                // on invalid code, render the 2FA page with an error
+                if (!$totp) {
                     // protection for abuse login requests
                     if ($this->login_attempts_too_many_with_increment($_SERVER['REMOTE_ADDR'])) {
                         return $this->response_429_too_many($response, $twig);
                     }
                     // render page with error
                     return $twig->render($response, static::LOGIN_TEMPLATE_2FA_TOTP, [
-                        'lang' => $post->lang,
-                        'login_token' => $post->login_token,
+                        ...(array)$post,  // pass back the original POST data
+                        'user' => $user,
                         'error' => 'invalid_tfa_code',
                         'login_attempts_warning' => $this->login_attempts_warning($_SERVER['REMOTE_ADDR']),
                     ]);
@@ -191,7 +173,7 @@ abstract class AbstractLoginController extends AbstractController
                 // all OK, create new session, reset login counter
                 $this->session_start($request, $user, $post, $totp);
                 $this->login_attempts_reset($_SERVER['REMOTE_ADDR']);
-                $this->log->info("Login successful for {$post->login}", ['login'=>$post->login, '2FA-mode'=>'TOTP/web', 'ip'=>$_SERVER['REMOTE_ADDR']]);
+                $this->log->info("Login successful for {$user_credentials['login']}", ['login'=>$user_credentials['login'], '2FA-mode'=>'TOTP/web']);
 
                 // redirect to user-info page
                 return $response
@@ -200,14 +182,14 @@ abstract class AbstractLoginController extends AbstractController
             }
             
         } catch (LDAPErrorException $e) {
-            $this->log->error("LDAP error in login page processing", ['error'=>$e::class, 'message'=>$e->getMessage(), 'code'=>$e->getCode(), 'user'=>$post->login, 'ip'=>$_SERVER['REMOTE_ADDR']]);
+            $this->log->error("LDAP error in login page processing", ['error'=>$e::class, 'message'=>$e->getMessage(), 'code'=>$e->getCode(), 'user'=>$user_credentials['login']]);
             return $twig->render($response, static::LOGIN_TEMPLATE_PASSWORD, [
                 'lang' => $post->lang,
                 'error' => 'ldap_unavailable',
             ]);
         } catch (\Throwable $e) {
             $post->password = '****';
-            $this->log->critical("Error in login page processing", ['error'=>$e::class, 'message'=>$e->getMessage(), 'code'=>$e->getCode(), 'post'=>$post, 'ip'=>$_SERVER['REMOTE_ADDR']]);
+            $this->log->critical("Error in login page processing", ['error'=>$e::class, 'message'=>$e->getMessage(), 'code'=>$e->getCode(), 'post'=>$post, 'user'=>$user_credentials['login']]);
             return $this->response_500_server_error($response, $twig, $e);
         }
 
@@ -231,6 +213,12 @@ abstract class AbstractLoginController extends AbstractController
     //   FALSE if the authentication has failed.
     //   assoc. array with user information
     //   note: for 2FA-TOTP to work, the array shall contain 'totp_secret' field
+
+
+    protected abstract function totp_verify(string $totp_secret, object $post_data): \OTPHP\TOTP|null;
+    // Abstract function for TOTP code verification.
+    // Returns:
+    //   \OTPHP\TOTP object if if the verification is successful, NULL if not.
 
 
     protected abstract function session_start(ServerRequestInterface $request, array $user, object $post, \OTPHP\TOTP $totp);
