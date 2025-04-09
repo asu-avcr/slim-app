@@ -8,11 +8,14 @@ use SlimApp\Services\ConfigService;
 class MemcachedSession extends AbstractSession
 // Session object that uses memcached for storing the content.
 {
+    protected const USE_CONFIGURAION = FALSE;
+    protected const CONFIG_SCHEMA = NULL;
+
     protected \Memcached $memcached;
     protected string $namespace;
 
 
-    public function __construct(?string $session_token, ConfigService $config)
+    protected function initialize(?string $session_token, ConfigService $config)
     {
         $this->memcached = new \Memcached();
         $this->memcached->addServer(
@@ -21,8 +24,6 @@ class MemcachedSession extends AbstractSession
         );
 
         $this->namespace = $config->cache->namespace . '/' . 'session';
-
-        parent::__construct($session_token, $config);
     }
 
 
