@@ -122,6 +122,8 @@ abstract class SlimApp
     protected function setup_twig(\Slim\App $app)
     // Set up and integrate Twig template engine.
     {
+        if(!static::TWIG_TEMPLATES_DIR) return;
+        
         $config = $app->getContainer()->get('config');
         $debug = $config->application->debug ?? FALSE;
 
