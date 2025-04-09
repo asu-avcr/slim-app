@@ -12,8 +12,8 @@ abstract class AbstractService
 // Logging service based on Monolog library.
 // It can do whatever Monolog can.
 {
-    const USE_CONFIGURAION = TRUE;
-    const CONFIG_SCHEMA = NULL;
+    protected const USE_CONFIGURAION = TRUE;
+    protected const CONFIG_SCHEMA = NULL;
 
     protected object $config;
 
