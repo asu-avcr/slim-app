@@ -60,44 +60,60 @@ class LoggingService extends AbstractService
     }
 
 
-    public function log($level, string|\Stringable $message, array $context = []): void
+    public function log($level, string|\Stringable $message, array $context = [], ?\Throwable $e = NULL, bool $include_post_request_data=FALSE): void
     {
+        if (isset($e)) {
+            $context['exception_class'] = $e::class;
+            $context['exception_message'] = $e->getMessage();
+            $context['exception_code'] = $e->getCode();
+            $context['exception_file'] = $e->getFile();
+            $context['exception_line'] = $e->getLine();
+            $context['exception_trace'] = $e->getTrace();
+        }
+        $context['client_ip_address'] = $_SERVER['REMOTE_ADDR'] ?? '';
+        $context['client_referer_url'] = $_SERVER['HTTP_REFERER'] ?? '';
+        $context['client_request_uri'] = $_SERVER['REQUEST_URI'] ?? '';
+
+        if ($include_post_request_data) {
+            $context['post_data'] = ($_SERVER['CONTENT_LENGTH']??0 < 1000) ? file_get_contents('php://input') : '(data too big)';
+        }
+        
         $this->logger->log($level, $message, $context);
     }
 
 
-    public function debug(string|\Stringable $message, array $context = []): void
+    public function debug(string|\Stringable $message, array $context = [], ?\Throwable $e = NULL, bool $include_post_request_data=FALSE): void
     {
-        $this->logger->debug($message, $context);
+        $this->log(\Monolog\Level::Debug, $message, $context, $e);
     }
 
 
-    public function info(string|\Stringable $message, array $context = []): void
+    public function info(string|\Stringable $message, array $context = [], ?\Throwable $e = NULL, bool $include_post_request_data=FALSE): void
     {
-        $this->logger->info($message, $context);
+        $this->log(\Monolog\Level::Info, $message, $context, $e);
     }
 
 
-    public function notice(string|\Stringable $message, array $context = []): void
+    public function notice(string|\Stringable $message, array $context = [], ?\Throwable $e = NULL, bool $include_post_request_data=FALSE): void
     {
-        $this->logger->notice($message, $context);
+        $this->log(\Monolog\Level::Notice, $message, $context, $e);
     }
 
 
-    public function warning(string|\Stringable $message, array $context = []): void
+    public function warning(string|\Stringable $message, array $context = [], ?\Throwable $e = NULL, bool $include_post_request_data=FALSE): void
     {
-        $this->logger->warning($message, $context);
+        $this->log(\Monolog\Level::Warning, $message, $context, $e);
     }
 
 
-    public function error(string|\Stringable $message, array $context = []): void
+    public function error(string|\Stringable $message, array $context = [], ?\Throwable $e = NULL, bool $include_post_request_data=FALSE): void
     {
-        $this->logger->error($message, $context);
+        $this->log(\Monolog\Level::Error, $message, $context, $e);
     }
 
-    public function critical(string|\Stringable $message, array $context = []): void
+    public function critical(string|\Stringable $message, array $context = [], ?\Throwable $e = NULL, bool $include_post_request_data=FALSE): void
     {
-        $this->logger->critical($message, $context);
+        $this->log(\Monolog\Level::Critical, $message, $context, $e);
     }
 
 
