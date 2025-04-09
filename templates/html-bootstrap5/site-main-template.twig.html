@@ -12,12 +12,12 @@
 {% block html_body_header %}
 <header id="html_body_header" class="header my-3 px-md-4 mb-0 {{html_body_header_class}}">
     {% block html_body_header_h1 %}
-    <h1 class="my-0 mr-md-auto font-weight-normal">
+    <h1 class="html_body_header_h1 my-0 mr-md-auto font-weight-normal">
         {% block html_body_header_h1_logo %}
-        <img src="{{html_body_header_logo_url}}" alt="LOGO" height="70"/>
+        <img src="{{html_body_header_logo_url}}" alt="LOGO" height="{{html_body_header_logo_height|default(70)}}" class="html_body_header_logo"/>
         {% endblock %}
         {% block html_body_header_h1_title %}
-        <span class="ms-5">{{html_body_header_h1_title|default('SITE TITLE')}}</span>
+        <span class="html_body_header_h1_text ms-5">{{html_body_header_h1_title|default('SITE TITLE')}}</span>
         {% endblock %}
     </h1>
     {% endblock %}
