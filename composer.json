@@ -19,7 +19,8 @@
         "doctrine/dbal": "^4",
         "phpmailer/phpmailer": "^6",
         "monolog/monolog": "^3",
-        "spomky-labs/otphp": "^11"
+        "spomky-labs/otphp": "^11",
+        "rlanvin/php-ip": "^3"
     },
     "autoload": {
         "psr-4": {
