@@ -48,8 +48,11 @@ abstract class AbstractSessionMiddleware implements MiddlewareInterface
     public function process(Request $request, RequestHandler $handler): Response
     // Process requests.
     {
-        // skip if the current route path is on the ignore-list
-        $ignore = in_array(strtolower($request->getUri()->getPath()), $this->ignored_paths);
+        $ignore = FALSE;
+        $route_path = strtolower($request->getUri()->getPath());
+        foreach ($this->ignored_paths as $ignpath) {
+            $ignore = $ignore || fnmatch($ignpath, $route_path);
+        }
 
         try {
             // get cookie content
@@ -92,7 +95,8 @@ abstract class AbstractSessionMiddleware implements MiddlewareInterface
         }
         catch (\Throwable $e) {
             // on any other exception, send a report to admin and return http-500 error response
-            $this->container->log?->error($e->getMessage(), ['class'=>static::class, 'exception'=>$e]);
+            $log = $this->container->get('log');
+            if ($log) $log->error($e->getMessage(), ['class'=>static::class, 'exception'=>$e]);
             return $this->responseFactory->createResponse()->withStatus(500);
         }
     }

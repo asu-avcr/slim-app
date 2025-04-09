@@ -166,3 +166,25 @@ function random_string_base32(int $length = 16)
     return $string;
 }
 
+
+function base32_encode(string $string): string
+// Encode string based on Base32 encoding.
+{
+    $BASE32_TABLE = 'abcdefghijklmnopqrstuvwxyz234567';
+    $out = '';
+    $i = $v = $bits = 0;  
+    $str_len = strlen($string);
+    while ($i < $str_len) {
+        $v |= ord($string[$i++]) << $bits;
+        $bits += 8;
+        while ($bits >= 5) {
+            $out .= $BASE32_TABLE[$v & 31];
+            $bits -= 5;
+            $v >>= 5;
+        }
+    }
+    if ($bits > 0) {
+        $out .= $BASE32_TABLE[$v & 31];    
+    }
+    return strtoupper($out);
+ }

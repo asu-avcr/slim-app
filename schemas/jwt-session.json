@@ -1,0 +1,38 @@
+{
+    "$id": "https://github.com/asu-avcr/slim-app/schemas/cache.json",
+    "type": "object",
+    "additionalProperties": true,
+    "required": ["application"],
+    "properties": {
+        "application": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["session"],
+            "properties": {
+                "session": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "required": ["jwt_secret_key"],
+                    "properties": {
+                        "jwt_secret_key": {
+                            "type": "string",
+                            "minLength": 32
+                        },
+                        "jwt_algorithm": {
+                            "type": "string",
+                            "enum": ["HS256","HS512"]
+                        },
+                        "ttl": {
+                            "type": "integer",
+                            "minimum": 10
+                        },
+                        "autorefresh": {
+                            "type": "boolean"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+    
