@@ -32,10 +32,10 @@ class BodyJsonParserMiddleware implements MiddlewareInterface
         $contentType = $request->getHeaderLine('Content-Type');
 
         if (strstr($contentType, 'application/json')) {
-            $contents = json_decode(file_get_contents('php://input'), false);
+            $json_data = json_decode(file_get_contents('php://input'), false);
             // note: $contents is a PHP object (stdClass)
             if (json_last_error() === JSON_ERROR_NONE) {
-                $request = $request->withParsedBody($contents);
+                $request = $request->withParsedBody($json_data);
             }
         }
 
