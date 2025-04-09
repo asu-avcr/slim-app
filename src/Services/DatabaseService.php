@@ -33,4 +33,18 @@ class DatabaseService extends AbstractService
     }
 
 
+    public function __get($property)
+    // property getter
+    {
+        switch ($property) {
+            case 'connection':
+                return $this->db;
+        }
+
+        // if no match has been reached
+        throw new \Exception(__CLASS__."::get: unknown property `$property`");
+    }
+
+
+
 }
