@@ -2,7 +2,7 @@
     "$id": "https://github.com/asu-avcr/slim-app/schemas/database.json",
     "type": "object",
     "additionalProperties": true,
-    "required": ["server_uri", "timeout", "base_dn", "filter_login", "field_mapping"],
+    "required": ["driver", "host", "dbname", "user", "password"],
     "properties": {
         "driver": {
             "type": "string"
@@ -20,7 +20,8 @@
             "type": "string"
         },
         "ssl": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": false
         }
     }
 }
