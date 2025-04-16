@@ -28,8 +28,8 @@ class LdapService extends AbstractService
     const ERR_LDAP_INVALID_CREDENTIALS = 'ldap_invalid_credentials';
     const ERR_LDAP_INVALID_FIELD    = 'ldap_invalid_field';
 
-    // private int $last_ldap_errno = 0;
-    // private string $last_ldap_error = '';
+    // protected int $last_ldap_errno = 0;
+    // protected string $last_ldap_error = '';
 
     public function initialize() 
     {
@@ -38,10 +38,10 @@ class LdapService extends AbstractService
 
 
     //---------------------------------------------------------------------------
-    // private methods
+    // protected/private methods
     //---------------------------------------------------------------------------
 
-    // private function check_result(\LDAP\Connection $ldap_conn, mixed $result, bool $raise_exception=FALSE): bool
+    // protected function check_result(\LDAP\Connection $ldap_conn, mixed $result, bool $raise_exception=FALSE): bool
     // {
     //     if ($result === FALSE) {
     //         $this->last_ldap_errno = ldap_errno($ldap_conn);
@@ -56,7 +56,7 @@ class LdapService extends AbstractService
     // }
 
 
-    private function ldap_host_ping($host, $port, $timeout=2): bool
+    protected function ldap_host_ping($host, $port, $timeout=2): bool
     {
         $socket = @fsockopen($host, $port, $errno, $errstr, $timeout);
         if ($socket) {
@@ -67,7 +67,7 @@ class LdapService extends AbstractService
     }
 
 
-    private function ldap_connect(): \LDAP\Connection|null
+    protected function ldap_connect(): \LDAP\Connection|null
     {
         $ldap_conn = NULL;
         $timeout = $this->config->timeout ?? 5;
@@ -94,13 +94,13 @@ class LdapService extends AbstractService
     }
         
 
-    private function ldap_disconnect(?\LDAP\Connection $ldap_conn) 
+    protected function ldap_disconnect(?\LDAP\Connection $ldap_conn) 
     {
         if ($ldap_conn) @ldap_close($ldap_conn);
     }
 
 
-    private function ldap_search(\LDAP\Connection $ldap_conn, string $base_dn, string $filter): array
+    protected function ldap_search(\LDAP\Connection $ldap_conn, string $base_dn, string $filter): array
     {
         assert($ldap_conn, 'ldap: no connection');
 
@@ -120,7 +120,7 @@ class LdapService extends AbstractService
     }
 
 
-    private function ldap_bind(\LDAP\Connection $ldap_conn, string $dn, string $password, bool $throw=FALSE): bool
+    protected function ldap_bind(\LDAP\Connection $ldap_conn, string $dn, string $password, bool $throw=FALSE): bool
     {
         assert($ldap_conn, 'ldap: no connection');
         assert(!empty($password), 'ldap: no password');
@@ -133,7 +133,7 @@ class LdapService extends AbstractService
     }
 
 
-    private function ldap_search_login(\LDAP\Connection $ldap_conn, string $login): array|false
+    protected function ldap_search_login(\LDAP\Connection $ldap_conn, string $login): array|false
     {
         assert($ldap_conn, 'ldap: no connection');
 
@@ -152,7 +152,7 @@ class LdapService extends AbstractService
     }
 
 
-    private function ldap_modify(\LDAP\Connection $ldap_conn, string $dn, array $entry): array
+    protected function ldap_modify(\LDAP\Connection $ldap_conn, string $dn, array $entry): array
     {
         assert($ldap_conn, 'ldap: no connection');
 
@@ -177,7 +177,7 @@ class LdapService extends AbstractService
     }
 
 
-    private function ldap_entry_to_json(array $ldap_entry): array
+    protected function ldap_entry_to_json(array $ldap_entry): array
     {
         $result = [];
         foreach ($ldap_entry as $key=>$value) {

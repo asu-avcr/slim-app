@@ -8,7 +8,7 @@ use PHPMailer\PHPMailer\Exception;
 class MailService
 // MailService provides SMTP cpmmunication and delivering of emails.
 {
-    private ?object $mail_conf;
+    protected ?object $mail_conf;
 
     public function __construct(?object $mail_conf) 
     {

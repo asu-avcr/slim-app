@@ -10,8 +10,8 @@ class CacheService extends AbstractService
 {
     const CONFIG_SCHEMA = 'schemas/cache.json';
 
-    private static $memcached = NULL;
-    private string $namespace = '';
+    protected static $memcached = NULL;
+    protected string $namespace = '';
 
     public function initialize() 
     {
@@ -28,10 +28,10 @@ class CacheService extends AbstractService
 
 
     //---------------------------------------------------------
-    // private
+    // protected/private
     //---------------------------------------------------------
 
-    private function check_result_code(array $allowed_result_codes): int
+    protected function check_result_code(array $allowed_result_codes): int
     {
         $result = self::$memcached->getResultCode();
         if (!in_array($result, $allowed_result_codes)) {
