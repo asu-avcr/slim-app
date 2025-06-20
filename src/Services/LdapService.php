@@ -209,6 +209,12 @@ class LdapService extends AbstractService
     }
 
 
+    protected function authenticate_return_info(\LDAP\Connection $ldap_conn, string $dn) : array|false
+    {
+        return $this->ldap_entry_to_json(
+            $this->ldap_search($ldap_conn, $dn, '(objectClass=*)')[0]
+        );
+    }
 
 
 
@@ -238,9 +244,7 @@ class LdapService extends AbstractService
                     return FALSE;
                 };
 
-                return $this->ldap_entry_to_json(
-                    $this->ldap_search($ldap_conn, $entry['dn'], '(objectClass=*)')[0]
-                );
+                return $this->authenticate_return_info($ldap_conn, $entry['dn']);
             }
         } finally {
             $this->ldap_disconnect($ldap_conn);
@@ -251,13 +255,21 @@ class LdapService extends AbstractService
     }
 
 
-    public function user_info(string $user_dn) : array|false
+    public function user_info(string $user_dn, #[\SensitiveParameter] ?string $password=NULL) : array|false
     {
         if (empty($user_dn)) return FALSE;
 
         $ldap_conn = NULL;
         try {
             $ldap_conn = $this->ldap_connect();
+
+            // perform bind if password is given
+            if ($password) {
+                // verify credentials, return FALSE if not valid
+                if (!$this->ldap_bind($ldap_conn, $user_dn, $password, FALSE)) {
+                    return FALSE;
+                };
+            }
 
             $entries = $this->ldap_search($ldap_conn, $user_dn, '(objectClass=*)');
             if (!$entries || (count($entries) > 1)) {

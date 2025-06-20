@@ -182,14 +182,14 @@ abstract class AbstractLoginController extends AbstractController
             }
             
         } catch (LDAPErrorException $e) {
-            $this->log->error("LDAP error in login page processing", ['error'=>$e::class, 'message'=>$e->getMessage(), 'code'=>$e->getCode(), 'user'=>$user_credentials['login']]);
+            $this->log->error("LDAP error in login page processing", ['error'=>$e::class, 'message'=>$e->getMessage(), 'code'=>$e->getCode(), 'user'=>$user_credentials['login']??NULL]);
             return $twig->render($response, static::LOGIN_TEMPLATE_PASSWORD, [
                 'lang' => $post->lang,
                 'error' => 'ldap_unavailable',
             ]);
         } catch (\Throwable $e) {
             $post->password = '****';
-            $this->log->critical("Error in login page processing", ['error'=>$e::class, 'message'=>$e->getMessage(), 'code'=>$e->getCode(), 'post'=>$post, 'user'=>$user_credentials['login']]);
+            $this->log->critical("Error in login page processing", ['error'=>$e::class, 'message'=>$e->getMessage(), 'code'=>$e->getCode(), 'post'=>$post, 'user'=>$user_credentials['login']??NULL]);
             return $this->response_500_server_error($response, $twig, $e);
         }
 
